@@ -11,6 +11,7 @@ func InitRoutes(userHandler *userhandler.UserHandler) http.Handler {
 	r := chi.NewRouter()
 
 	r.Post("/login", userHandler.LoginHandler)
+	r.Get("/auth/me", userHandler.AuthMeHandler)
 
 	return r
 }

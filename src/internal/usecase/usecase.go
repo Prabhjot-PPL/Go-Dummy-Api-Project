@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"encoding/json"
-	"fmt"
 	"go-project/src/internal/adaptors/external"
 	"go-project/src/internal/adaptors/persistance"
 	"go-project/src/internal/core/dto"
@@ -13,8 +12,8 @@ type UserService struct {
 	userRepo persistance.UserRepo
 }
 
-func NewUserService(userRepo persistance.UserRepo) UserService {
-	return UserService{userRepo: userRepo}
+func NewUserService(userRepo persistance.UserRepo) user.Service {
+	return &UserService{userRepo: userRepo}
 }
 
 // type LoginResponse struct {
@@ -48,8 +47,23 @@ func (u *UserService) LoginUser(requestData user.User) (dto.LoginResponse, error
 		return dto.LoginResponse{}, err
 	}
 
-	fmt.Println("idhar se shuru")
-	fmt.Printf("%+v", loginResp)
-
 	return loginResp, nil
+}
+
+func (u *UserService) GetUserByToken(token string) (dto.AuthResponse, error) {
+
+	resp, err := external.GetUserByToken(token)
+	if err != nil {
+		return dto.AuthResponse{}, err
+	}
+
+	defer resp.Body.Close()
+
+	var userResp dto.AuthResponse
+	err = json.NewDecoder(resp.Body).Decode(&userResp)
+	if err != nil {
+		return dto.AuthResponse{}, err
+	}
+
+	return userResp, nil
 }
