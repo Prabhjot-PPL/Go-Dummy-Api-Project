@@ -3,6 +3,8 @@ package persistance
 import (
 	"database/sql"
 	"fmt"
+	"go-project/src/internal/config"
+	"log"
 
 	_ "github.com/lib/pq"
 )
@@ -13,13 +15,17 @@ type Database struct {
 
 func ConnectToDatabase() (*Database, error) {
 
-	db, err := sql.Open("postgres", "postgresql://postgres:password@localhost:5433/mydb?sslmode=disable")
+	config := config.LoadConfig()
+
+	databaseURL := fmt.Sprintf("postgresql://%s:%s@%s:%s/%s?sslmode=disable", config.DB_User, config.DB_Password, config.DB_Host, config.DB_Port, config.DB_Name)
+
+	db, err := sql.Open("postgres", databaseURL)
 
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Printf("Connected to Database \n\n")
+	log.Printf("Connected to Database \n\n")
 
 	err = db.Ping()
 	if err != nil {

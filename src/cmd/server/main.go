@@ -20,7 +20,7 @@ func main() {
 	UserService := usecase.NewUserService(UserRepo)
 	userHandler := userhandler.NewUserHandler(UserService)
 
-	router := routes.InitRoutes(&userHandler)
+	router := routes.InitRoutes(userHandler)
 
 	err = http.ListenAndServe(":8080", router)
 

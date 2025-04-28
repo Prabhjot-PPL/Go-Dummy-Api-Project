@@ -1,22 +1,31 @@
 package userhandler
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
-	"go-project/src/internal/core/user"
+	"go-project/src/internal/adaptors/external/dummyapi"
+	"go-project/src/internal/core/coreinterfaces"
+	"log"
 	"net/http"
+	"time"
 )
 
 type UserHandler struct {
-	userService user.Service
+	userService coreinterfaces.Service
 }
 
-func NewUserHandler(userService user.Service) UserHandler {
-	return UserHandler{userService: userService}
+func NewUserHandler(userService coreinterfaces.Service) coreinterfaces.UserAPIHandler {
+	return &UserHandler{userService: userService}
 }
 
 func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
-	var requestData user.User
+
+	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	defer cancel()
+
+	// time.Sleep(5 * time.Second) // DELAY
+
+	var requestData dummyapi.ApiRequestData
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -24,13 +33,12 @@ func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// fmt.Println("Request Data : ", requestData)
-
-	loginResponse, err := u.userService.LoginUser(requestData)
+	// SENDING RESPONSE to usecase.go
+	loginResponse, err := u.userService.LoginUser(ctx, requestData)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte(err.Error()))
-		fmt.Println("Error in login response ")
+		log.Println("Error in login response ")
 		return
 	}
 
@@ -52,15 +60,14 @@ func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Error encoding response"))
-		fmt.Println("Error encoding login response:", err)
+		log.Println("Error encoding login response:", err)
 		return
 	}
-
-	fmt.Println()
-	// fmt.Println("login Response : ", loginResponse)
 }
 
 func (u *UserHandler) AuthMeHandler(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
 
 	// Get the cookie
 	cookie, err := r.Cookie("access_token")
@@ -71,7 +78,7 @@ func (u *UserHandler) AuthMeHandler(w http.ResponseWriter, r *http.Request) {
 	token := cookie.Value
 
 	// Pass token to usecase
-	userData, err := u.userService.GetUserByToken(token)
+	userData, err := u.userService.GetUserByToken(ctx, token)
 	if err != nil {
 		http.Error(w, "Invalid or expired token", http.StatusUnauthorized)
 		return

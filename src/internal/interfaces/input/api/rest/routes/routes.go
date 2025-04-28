@@ -1,13 +1,13 @@
 package routes
 
 import (
-	userhandler "go-project/src/internal/interfaces/input/api/rest/handler"
+	"go-project/src/internal/core/coreinterfaces"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 )
 
-func InitRoutes(userHandler *userhandler.UserHandler) http.Handler {
+func InitRoutes(userHandler coreinterfaces.UserAPIHandler) http.Handler {
 	r := chi.NewRouter()
 
 	r.Post("/login", userHandler.LoginHandler)

@@ -1,48 +1,55 @@
 package usecase
 
 import (
+	"context"
 	"encoding/json"
-	"go-project/src/internal/adaptors/external"
-	"go-project/src/internal/adaptors/persistance"
+	"go-project/src/internal/adaptors/external/dummyapi"
+	"go-project/src/internal/config"
+	"go-project/src/internal/core/coreinterfaces"
 	"go-project/src/internal/core/dto"
-	"go-project/src/internal/core/user"
+	"log"
 )
 
-type UserService struct {
-	userRepo persistance.UserRepo
+type userService struct {
+	userRepo coreinterfaces.UserRepository
+	keys     dummyapi.ApiImplementation
 }
 
-func NewUserService(userRepo persistance.UserRepo) user.Service {
-	return &UserService{userRepo: userRepo}
+func NewUserService(userRepo coreinterfaces.UserRepository) coreinterfaces.Service {
+	return &userService{userRepo: userRepo}
 }
 
-// type LoginResponse struct {
-// 	Id           int
-// 	Username     string
-// 	Email        string
-// 	FirstName    string
-// 	LastName     string
-// 	Gender       string
-// 	AccessToken  string
-// 	RefreshToken string
-// }
+// LOGIN request to dummy_api
+func (u *userService) LoginUser(ctx context.Context, requestData dummyapi.ApiRequestData) (dto.LoginResponse, error) {
 
-func (u *UserService) LoginUser(requestData user.User) (dto.LoginResponse, error) {
+	config := config.LoadConfig()
+	baseUrl := dummyapi.ApiImplementation{BaseUrl: config.Dummy_API}
 
-	resp, err := external.GetUser(requestData.Username, requestData.Password)
+	// CHECK if user already exist in DB or not
+	err := u.userRepo.CheckUserExist(ctx, requestData.Username)
+	if err != nil {
+		log.Println("Error checking user existence:", err)
+		return dto.LoginResponse{}, err
+	}
+
+	// SEND username, password to dummy api
+	resp, err := baseUrl.GetUser(ctx, requestData)
 	if err != nil {
 		return dto.LoginResponse{}, err
 	}
 
+	// closing response body
 	defer resp.Body.Close()
 
+	// fetching RESPONSE from dummy_api
 	var loginResp dto.LoginResponse
 	err = json.NewDecoder(resp.Body).Decode(&loginResp)
 	if err != nil {
 		return dto.LoginResponse{}, err
 	}
 
-	err = u.userRepo.StoreUser(loginResp)
+	// STORING response data to DB
+	err = u.userRepo.StoreUser(ctx, loginResp)
 	if err != nil {
 		return dto.LoginResponse{}, err
 	}
@@ -50,9 +57,13 @@ func (u *UserService) LoginUser(requestData user.User) (dto.LoginResponse, error
 	return loginResp, nil
 }
 
-func (u *UserService) GetUserByToken(token string) (dto.AuthResponse, error) {
+// AUTH user
+func (u *userService) GetUserByToken(ctx context.Context, token string) (dto.AuthResponse, error) {
 
-	resp, err := external.GetUserByToken(token)
+	config := config.LoadConfig()
+	baseUrl := dummyapi.ApiImplementation{BaseUrl: config.Dummy_API}
+
+	resp, err := baseUrl.GetUserByToken(ctx, token)
 	if err != nil {
 		return dto.AuthResponse{}, err
 	}
