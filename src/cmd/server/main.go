@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go-project/src/internal/adaptors/external/dummyapi"
 	"go-project/src/internal/adaptors/persistance"
 	userhandler "go-project/src/internal/interfaces/input/api/rest/handler"
 	"go-project/src/internal/interfaces/input/api/rest/routes"
@@ -15,6 +16,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to connect to database : %v", err)
 	}
+
+	dummyapi.New()
 
 	UserRepo := persistance.NewUserRepo(database)
 	UserService := usecase.NewUserService(UserRepo)

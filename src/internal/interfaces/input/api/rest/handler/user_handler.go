@@ -20,12 +20,12 @@ func NewUserHandler(userService coreinterfaces.Service) coreinterfaces.UserAPIHa
 
 func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
-	ctx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 	defer cancel()
 
 	// time.Sleep(5 * time.Second) // DELAY
 
-	var requestData dummyapi.ApiRequestData
+	var requestData dummyapi.UserCredentials
 
 	if err := json.NewDecoder(r.Body).Decode(&requestData); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -57,6 +57,7 @@ func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	// Encode the loginResponse as JSON and write it to the response body
 	err = json.NewEncoder(w).Encode(loginResponse)
+	// fmt.Println(loginResponse)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte("Error encoding response"))
@@ -90,5 +91,48 @@ func (u *UserHandler) AuthMeHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Failed to encode user data", http.StatusInternalServerError)
 		return
+	}
+}
+
+func (u *UserHandler) CategoryHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+	defer cancel()
+
+	err := u.userService.GetCategories(ctx)
+	if err != nil {
+		http.Error(w, "Failed to get categories", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte("Categories fetched successfully"))
+}
+
+func (u *UserHandler) ProductHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
+	defer cancel()
+
+	var reqBody struct {
+		Categories []string `json:"categories"`
+	}
+
+	err := json.NewDecoder(r.Body).Decode(&reqBody)
+	if err != nil {
+		http.Error(w, "Invalid input", http.StatusBadRequest)
+		return
+	}
+
+	products, err := u.userService.GetProducts(ctx, reqBody.Categories)
+	if err != nil {
+		http.Error(w, "Failed to get products", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+
+	err = json.NewEncoder(w).Encode(products)
+	if err != nil {
+		http.Error(w, "Failed to encode products", http.StatusInternalServerError)
 	}
 }

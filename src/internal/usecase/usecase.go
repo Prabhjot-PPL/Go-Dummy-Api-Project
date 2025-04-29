@@ -8,11 +8,12 @@ import (
 	"go-project/src/internal/core/coreinterfaces"
 	"go-project/src/internal/core/dto"
 	"log"
+	"sync"
 )
 
 type userService struct {
 	userRepo coreinterfaces.UserRepository
-	keys     dummyapi.ApiImplementation
+	keys     dummyapi.ApiInterface
 }
 
 func NewUserService(userRepo coreinterfaces.UserRepository) coreinterfaces.Service {
@@ -20,10 +21,11 @@ func NewUserService(userRepo coreinterfaces.UserRepository) coreinterfaces.Servi
 }
 
 // LOGIN request to dummy_api
-func (u *userService) LoginUser(ctx context.Context, requestData dummyapi.ApiRequestData) (dto.LoginResponse, error) {
+func (u *userService) LoginUser(ctx context.Context, requestData dummyapi.UserCredentials) (dto.LoginResponse, error) {
 
 	config := config.LoadConfig()
-	baseUrl := dummyapi.ApiImplementation{BaseUrl: config.Dummy_API}
+	// baseUrl := dummyapi.ApiImplementation{BaseUrl: config.Dummy_API}
+	u.keys.BaseUrl = config.Dummy_API
 
 	// CHECK if user already exist in DB or not
 	err := u.userRepo.CheckUserExist(ctx, requestData.Username)
@@ -33,7 +35,7 @@ func (u *userService) LoginUser(ctx context.Context, requestData dummyapi.ApiReq
 	}
 
 	// SEND username, password to dummy api
-	resp, err := baseUrl.GetUser(ctx, requestData)
+	resp, err := u.keys.GetUser(ctx, requestData)
 	if err != nil {
 		return dto.LoginResponse{}, err
 	}
@@ -54,6 +56,8 @@ func (u *userService) LoginUser(ctx context.Context, requestData dummyapi.ApiReq
 		return dto.LoginResponse{}, err
 	}
 
+	// fmt.Println(loginResp)
+
 	return loginResp, nil
 }
 
@@ -61,9 +65,10 @@ func (u *userService) LoginUser(ctx context.Context, requestData dummyapi.ApiReq
 func (u *userService) GetUserByToken(ctx context.Context, token string) (dto.AuthResponse, error) {
 
 	config := config.LoadConfig()
-	baseUrl := dummyapi.ApiImplementation{BaseUrl: config.Dummy_API}
+	// baseUrl := dummyapi.ApiImplementation{BaseUrl: config.Dummy_API}
+	u.keys.BaseUrl = "gfh"
 
-	resp, err := baseUrl.GetUserByToken(ctx, token)
+	resp, err := u.keys.GetUserByToken(ctx, token)
 	if err != nil {
 		return dto.AuthResponse{}, err
 	}
@@ -77,4 +82,49 @@ func (u *userService) GetUserByToken(ctx context.Context, token string) (dto.Aut
 	}
 
 	return userResp, nil
+}
+
+// --------------------------PRODUCT-----------------------------
+
+func (u *userService) GetCategories(ctx context.Context) error {
+
+	config := config.LoadConfig()
+	u.keys.BaseUrl = config.Dummy_API
+
+	categories, err := u.keys.GetProductCategories(ctx)
+	if err != nil {
+		log.Println("Error getting product category ", err)
+		return err
+	}
+
+	log.Println("Fetched categories : ", categories)
+
+	return err
+}
+
+func (u *userService) GetProducts(ctx context.Context, categories []string) ([]dummyapi.Product, error) {
+	config := config.LoadConfig()
+	u.keys.BaseUrl = config.Dummy_API
+
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	var allProducts []dummyapi.Product
+
+	for _, category := range categories {
+		wg.Add(1)
+		go func(cat string) {
+			defer wg.Done()
+			products, err := u.keys.GetProductsByCategory(ctx, cat)
+			if err != nil {
+				return
+			}
+			mu.Lock()
+			allProducts = append(allProducts, products...)
+			mu.Unlock()
+		}(category)
+	}
+
+	wg.Wait()
+
+	return allProducts, nil
 }

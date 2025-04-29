@@ -12,6 +12,8 @@ func InitRoutes(userHandler coreinterfaces.UserAPIHandler) http.Handler {
 
 	r.Post("/login", userHandler.LoginHandler)
 	r.Get("/auth/me", userHandler.AuthMeHandler)
+	r.Get("/get-categories", userHandler.CategoryHandler)
+	r.Post("/get-products", userHandler.ProductHandler)
 
 	return r
 }
