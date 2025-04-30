@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"go-project/src/internal/adaptors/external/dummyapi"
 	"go-project/src/internal/core/coreinterfaces"
+	"go-project/src/pkg"
 	"log"
 	"net/http"
 	"time"
@@ -17,6 +18,8 @@ type UserHandler struct {
 func NewUserHandler(userService coreinterfaces.Service) coreinterfaces.UserAPIHandler {
 	return &UserHandler{userService: userService}
 }
+
+// ------------------------------USER AUTH----------------------------------
 
 func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -94,20 +97,74 @@ func (u *UserHandler) AuthMeHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// ------------------------------ PRODUCT ----------------------------------
+
+// GET ALL PRODUCTS
+func (u *UserHandler) AllProductsHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+	defer cancel()
+
+	allProducts, err := u.userService.GetAllProducts(ctx)
+	if err != nil {
+		http.Error(w, "Failed to get products", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	err = json.NewEncoder(w).Encode(allProducts)
+	if err != nil {
+		http.Error(w, "Failed to encode products", http.StatusInternalServerError)
+	} else {
+		log.Println("All Products fetched successfully!!!")
+	}
+}
+
+// GET SINGLE PRODUCT
+func (u *UserHandler) GetSingleProduct(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	id := r.URL.Query().Get("id")
+	if id == "" {
+		http.Error(w, "Missing product ID", http.StatusBadRequest)
+		return
+	}
+
+	product, err := u.userService.GetProductById(ctx, id)
+	if err != nil {
+		http.Error(w, "Failed to fetch product", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(product)
+}
+
+// GET ALL CATEGORIES
 func (u *UserHandler) CategoryHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 	defer cancel()
 
-	err := u.userService.GetCategories(ctx)
+	respCategories, err := u.userService.GetCategories(ctx)
 	if err != nil {
 		http.Error(w, "Failed to get categories", http.StatusInternalServerError)
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("Categories fetched successfully"))
+	pkg.WriteResponse(w, respCategories)
+
+	// w.Header().Set("Content-Type", "application/json")
+	// w.WriteHeader(http.StatusOK)
+	// err = json.NewEncoder(w).Encode(respCategories)
+	// if err != nil {
+	// 	http.Error(w, "Failed to encode Categories", http.StatusInternalServerError)
+	// } else {
+	// 	log.Println("All Categories fetched successfully!!!")
+	// }
 }
 
+// GET PRODUCTS OF GIVEN CATEGORIES
 func (u *UserHandler) ProductHandler(w http.ResponseWriter, r *http.Request) {
 	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
 	defer cancel()
@@ -134,5 +191,7 @@ func (u *UserHandler) ProductHandler(w http.ResponseWriter, r *http.Request) {
 	err = json.NewEncoder(w).Encode(products)
 	if err != nil {
 		http.Error(w, "Failed to encode products", http.StatusInternalServerError)
+	} else {
+		log.Println("Products of give categories are fetched successfully!!!")
 	}
 }

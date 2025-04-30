@@ -3,7 +3,7 @@ package persistance
 import (
 	"context"
 	"fmt"
-	"go-project/src/internal/core/coreinterfaces"
+	"go-project/src/internal/adaptors/ports"
 	"go-project/src/internal/core/dto"
 	"log"
 )
@@ -12,7 +12,7 @@ type UserRepo struct {
 	db *Database
 }
 
-func NewUserRepo(d *Database) coreinterfaces.UserRepository {
+func NewUserRepo(d *Database) ports.UserRepository {
 	return &UserRepo{db: d}
 }
 

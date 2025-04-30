@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"go-project/src/internal/adaptors/external/dummyapi"
-	"go-project/src/internal/config"
+	"go-project/src/internal/adaptors/ports"
 	"go-project/src/internal/core/coreinterfaces"
 	"go-project/src/internal/core/dto"
 	"log"
@@ -12,20 +12,21 @@ import (
 )
 
 type userService struct {
-	userRepo coreinterfaces.UserRepository
+	userRepo ports.UserRepository
 	keys     dummyapi.ApiInterface
 }
 
-func NewUserService(userRepo coreinterfaces.UserRepository) coreinterfaces.Service {
-	return &userService{userRepo: userRepo}
+func NewUserService(userRepo ports.UserRepository, baseurl dummyapi.ApiInterface) coreinterfaces.Service {
+	return &userService{
+		userRepo: userRepo,
+		keys:     baseurl,
+	}
 }
+
+// ------------------------------USER AUTH----------------------------------
 
 // LOGIN request to dummy_api
 func (u *userService) LoginUser(ctx context.Context, requestData dummyapi.UserCredentials) (dto.LoginResponse, error) {
-
-	config := config.LoadConfig()
-	// baseUrl := dummyapi.ApiImplementation{BaseUrl: config.Dummy_API}
-	u.keys.BaseUrl = config.Dummy_API
 
 	// CHECK if user already exist in DB or not
 	err := u.userRepo.CheckUserExist(ctx, requestData.Username)
@@ -64,10 +65,6 @@ func (u *userService) LoginUser(ctx context.Context, requestData dummyapi.UserCr
 // AUTH user
 func (u *userService) GetUserByToken(ctx context.Context, token string) (dto.AuthResponse, error) {
 
-	config := config.LoadConfig()
-	// baseUrl := dummyapi.ApiImplementation{BaseUrl: config.Dummy_API}
-	u.keys.BaseUrl = "gfh"
-
 	resp, err := u.keys.GetUserByToken(ctx, token)
 	if err != nil {
 		return dto.AuthResponse{}, err
@@ -84,27 +81,47 @@ func (u *userService) GetUserByToken(ctx context.Context, token string) (dto.Aut
 	return userResp, nil
 }
 
-// --------------------------PRODUCT-----------------------------
+// ------------------------------ PRODUCT ----------------------------------
 
-func (u *userService) GetCategories(ctx context.Context) error {
+// GET ALL PRODUCTS
+func (u *userService) GetAllProducts(ctx context.Context) ([]dummyapi.Product, error) {
 
-	config := config.LoadConfig()
-	u.keys.BaseUrl = config.Dummy_API
+	resp, err := u.keys.GetAllProducts(ctx)
+	if err != nil {
+		log.Println("Error getting products : ", err)
+		return resp, err
+	}
+
+	return resp, err
+}
+
+// GET PRODUCT BY ID
+func (u *userService) GetProductById(ctx context.Context, id string) (dummyapi.Product, error) {
+	resp, err := u.keys.GetProductById(ctx, id)
+	if err != nil {
+		log.Println("Error getting product by id : ", err)
+		return dummyapi.Product{}, err
+	}
+
+	return resp, err
+}
+
+// GET ALL CATEGORIES
+func (u *userService) GetCategories(ctx context.Context) ([]string, error) {
 
 	categories, err := u.keys.GetProductCategories(ctx)
 	if err != nil {
 		log.Println("Error getting product category ", err)
-		return err
+		return nil, err
 	}
 
-	log.Println("Fetched categories : ", categories)
+	// log.Println("Fetched categories : ", categories)
 
-	return err
+	return categories, err
 }
 
+// GET PRODUCTS OF GIVEN CATEGORIES
 func (u *userService) GetProducts(ctx context.Context, categories []string) ([]dummyapi.Product, error) {
-	config := config.LoadConfig()
-	u.keys.BaseUrl = config.Dummy_API
 
 	var wg sync.WaitGroup
 	var mu sync.Mutex

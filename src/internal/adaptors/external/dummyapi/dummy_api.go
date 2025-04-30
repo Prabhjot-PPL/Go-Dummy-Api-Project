@@ -9,11 +9,18 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 )
 
 type ApiInterface interface {
+	GetUser(ctx context.Context, requestData UserCredentials) (*http.Response, error)
+	GetUserByToken(ctx context.Context, token string) (*http.Response, error)
+	GetAllProducts(ctx context.Context) ([]Product, error)
+	GetProductById(ctx context.Context, id string) (Product, error)
+	GetProductCategories(ctx context.Context) ([]string, error)
+	GetProductsByCategory(ctx context.Context, category string) ([]Product, error)
 }
 
 type ApiImplementation struct {
@@ -30,6 +37,8 @@ type UserCredentials struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
 }
+
+// ------------------------------USER AUTH----------------------------------
 
 func (key ApiImplementation) GetUser(ctx context.Context, requestData UserCredentials) (*http.Response, error) {
 
@@ -79,6 +88,82 @@ func (key ApiImplementation) GetUserByToken(ctx context.Context, token string) (
 	return resp, nil
 }
 
+// ------------------------------ PRODUCT ----------------------------------
+
+type Product struct {
+	Id          int     `json:"id"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	Category    string  `json:"category"`
+	Price       float64 `json:"price"`
+	Discount    float64 `json:"discountPercentage"`
+	Rating      float64 `json:"rating"`
+}
+
+type ProductsResponse struct {
+	Products []Product `json:"products"`
+}
+
+// GET ALL PRODUCTS
+func (key ApiImplementation) GetAllProducts(ctx context.Context) ([]Product, error) {
+
+	url := key.baseUrl + "/products"
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	defer resp.Body.Close()
+
+	var products ProductsResponse
+	err = json.NewDecoder(resp.Body).Decode(&products)
+	if err != nil {
+		log.Print("Error decoding products : ", err)
+		return nil, err
+	}
+
+	// fmt.Println(products)
+
+	return products.Products, err
+}
+
+// GET PRODUCT BY ID
+func (key ApiImplementation) GetProductById(ctx context.Context, id string) (Product, error) {
+
+	url := key.baseUrl + "/products/" + id
+
+	fmt.Println(url)
+
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
+	if err != nil {
+		log.Println("Error creating request for GetProductById")
+		return Product{}, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println("Error making request for GetProductById")
+		return Product{}, err
+	}
+
+	defer resp.Body.Close()
+
+	var product Product
+	err = json.NewDecoder(resp.Body).Decode(&product)
+	if err != nil {
+		return Product{}, err
+	}
+
+	return product, nil
+}
+
+// GET CATEGORIES
 func (key ApiImplementation) GetProductCategories(ctx context.Context) ([]string, error) {
 
 	url := key.baseUrl + "/products/category-list"
@@ -105,19 +190,7 @@ func (key ApiImplementation) GetProductCategories(ctx context.Context) ([]string
 
 }
 
-type Product struct {
-	Id          int     `json:"id"`
-	Title       string  `json:"title"`
-	Description string  `json:"description"`
-	Category    string  `json:"category"`
-	Price       float64 `json:"price"`
-	Discount    float64 `json:"discountPercentage"`
-	Rating      float64 `json:"rating"`
-}
-
-type ProductsResponse struct {
-	Products []Product `json:"products"`
-}
+// GET PRODUCTS BASED ON CATEGORIES GIVEN
 
 func (key ApiImplementation) GetProductsByCategory(ctx context.Context, category string) ([]Product, error) {
 
