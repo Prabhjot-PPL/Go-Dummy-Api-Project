@@ -52,3 +52,24 @@ func (u *UserRepo) StoreUser(ctx context.Context, user dto.LoginResponse) error 
 	}
 	return nil
 }
+
+// AUTH USER (for middleware)
+func (u *UserRepo) IsTokenValid(ctx context.Context, token string) (bool, error) {
+
+	// Validate access_token
+	var count int
+	err := u.db.db.QueryRowContext(ctx, `
+		SELECT COUNT(*) FROM "userinfo" WHERE access_token = $1
+	`, token).Scan(&count)
+	if err != nil {
+		log.Println("Error validating access_token : ", err)
+		return false, err
+	}
+
+	// If a access_token doesn't exist
+	if count == 0 {
+		return false, fmt.Errorf("user with this username already exists")
+	}
+
+	return true, nil
+}

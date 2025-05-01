@@ -11,4 +11,6 @@ type UserAPIHandler interface {
 	GetSingleProduct(w http.ResponseWriter, r *http.Request)
 	CategoryHandler(w http.ResponseWriter, r *http.Request)
 	ProductHandler(w http.ResponseWriter, r *http.Request)
+	UpdateProductHandler(w http.ResponseWriter, r *http.Request)
+	DeleteProductHandler(w http.ResponseWriter, r *http.Request)
 }

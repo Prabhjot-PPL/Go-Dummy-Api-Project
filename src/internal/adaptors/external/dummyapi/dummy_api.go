@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -21,6 +20,8 @@ type ApiInterface interface {
 	GetProductById(ctx context.Context, id string) (Product, error)
 	GetProductCategories(ctx context.Context) ([]string, error)
 	GetProductsByCategory(ctx context.Context, category string) ([]Product, error)
+	UpdateProduct(ctx context.Context, id string, updateData map[string]interface{}) (Product, error)
+	DeleteProduct(ctx context.Context, id string) (Product, error)
 }
 
 type ApiImplementation struct {
@@ -138,7 +139,7 @@ func (key ApiImplementation) GetProductById(ctx context.Context, id string) (Pro
 
 	url := key.baseUrl + "/products/" + id
 
-	fmt.Println(url)
+	// fmt.Println(url)
 
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -191,7 +192,6 @@ func (key ApiImplementation) GetProductCategories(ctx context.Context) ([]string
 }
 
 // GET PRODUCTS BASED ON CATEGORIES GIVEN
-
 func (key ApiImplementation) GetProductsByCategory(ctx context.Context, category string) ([]Product, error) {
 
 	url := key.baseUrl + "/products/category/" + category
@@ -217,4 +217,59 @@ func (key ApiImplementation) GetProductsByCategory(ctx context.Context, category
 	}
 
 	return productsResp.Products, nil
+}
+
+// UPDATE PRODUCT
+func (key ApiImplementation) UpdateProduct(ctx context.Context, id string, updateData map[string]interface{}) (Product, error) {
+	url := key.baseUrl + "/products/" + id
+
+	jsonBody, err := json.Marshal(updateData)
+	if err != nil {
+		return Product{}, err
+	}
+
+	req, err := http.NewRequestWithContext(ctx, "PUT", url, bytes.NewBuffer(jsonBody))
+	if err != nil {
+		return Product{}, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return Product{}, err
+	}
+	defer resp.Body.Close()
+
+	var updatedProduct Product
+	if err := json.NewDecoder(resp.Body).Decode(&updatedProduct); err != nil {
+		return Product{}, err
+	}
+
+	return updatedProduct, nil
+}
+
+// DELETE PRODUCT
+func (key ApiImplementation) DeleteProduct(ctx context.Context, id string) (Product, error) {
+	url := key.baseUrl + "/products/" + id
+
+	req, err := http.NewRequestWithContext(ctx, "DELETE", url, nil)
+	if err != nil {
+		log.Println("Error creating request for DeleteProduct")
+		return Product{}, err
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Println("Error executing request for DeleteProduct")
+		return Product{}, err
+	}
+	defer resp.Body.Close()
+
+	var product Product
+	err = json.NewDecoder(resp.Body).Decode(&product)
+	if err != nil {
+		return Product{}, err
+	}
+
+	return product, nil
 }

@@ -9,6 +9,8 @@ import (
 	"log"
 	"net/http"
 	"time"
+
+	"github.com/go-chi/chi/v5"
 )
 
 type UserHandler struct {
@@ -21,6 +23,7 @@ func NewUserHandler(userService coreinterfaces.Service) coreinterfaces.UserAPIHa
 
 // ------------------------------USER AUTH----------------------------------
 
+// LOGIN USER
 func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx, cancel := context.WithTimeout(r.Context(), 4*time.Second)
@@ -55,20 +58,12 @@ func (u *UserHandler) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		SameSite: http.SameSiteLaxMode,
 	})
 
-	// Set the response header to indicate JSON content
-	w.Header().Set("Content-Type", "application/json")
-
-	// Encode the loginResponse as JSON and write it to the response body
-	err = json.NewEncoder(w).Encode(loginResponse)
-	// fmt.Println(loginResponse)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte("Error encoding response"))
-		log.Println("Error encoding login response:", err)
-		return
-	}
+	errString := "Failed to login user."
+	successSting := "User logged-in successfully!!!"
+	pkg.WriteResponse(w, loginResponse, errString, successSting)
 }
 
+// AUTH USER
 func (u *UserHandler) AuthMeHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := r.Context()
@@ -88,13 +83,9 @@ func (u *UserHandler) AuthMeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Respond with user data
-	w.Header().Set("Content-Type", "application/json")
-	err = json.NewEncoder(w).Encode(userData)
-	if err != nil {
-		http.Error(w, "Failed to encode user data", http.StatusInternalServerError)
-		return
-	}
+	errString := "Failed to authenticate user."
+	successSting := "User authenticated successfully!!!"
+	pkg.WriteResponse(w, userData, errString, successSting)
 }
 
 // ------------------------------ PRODUCT ----------------------------------
@@ -110,14 +101,9 @@ func (u *UserHandler) AllProductsHandler(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	err = json.NewEncoder(w).Encode(allProducts)
-	if err != nil {
-		http.Error(w, "Failed to encode products", http.StatusInternalServerError)
-	} else {
-		log.Println("All Products fetched successfully!!!")
-	}
+	errString := "Failed to fetch products user."
+	successSting := "Products fetched successfully!!!"
+	pkg.WriteResponse(w, allProducts, errString, successSting)
 }
 
 // GET SINGLE PRODUCT
@@ -137,8 +123,9 @@ func (u *UserHandler) GetSingleProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(product)
+	errString := "Failed to get product by id."
+	successSting := "Successfully fetched Product by Id!!!"
+	pkg.WriteResponse(w, product, errString, successSting)
 }
 
 // GET ALL CATEGORIES
@@ -152,16 +139,9 @@ func (u *UserHandler) CategoryHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	pkg.WriteResponse(w, respCategories)
-
-	// w.Header().Set("Content-Type", "application/json")
-	// w.WriteHeader(http.StatusOK)
-	// err = json.NewEncoder(w).Encode(respCategories)
-	// if err != nil {
-	// 	http.Error(w, "Failed to encode Categories", http.StatusInternalServerError)
-	// } else {
-	// 	log.Println("All Categories fetched successfully!!!")
-	// }
+	errString := "Failed to encode Categories"
+	successSting := "All Categories fetched successfully!!!"
+	pkg.WriteResponse(w, respCategories, errString, successSting)
 }
 
 // GET PRODUCTS OF GIVEN CATEGORIES
@@ -185,13 +165,56 @@ func (u *UserHandler) ProductHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	errString := "Failed to fetch products of given categories."
+	successSting := "Successfully fetched Products of given categories!!!"
+	pkg.WriteResponse(w, products, errString, successSting)
+}
+
+// UPDATE PRODUCT
+func (u *UserHandler) UpdateProductHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "Missing product ID", http.StatusBadRequest)
+		return
+	}
+
+	var updateData map[string]interface{}
+	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
+		return
+	}
+
+	updatedProduct, err := u.userService.UpdateProduct(ctx, id, updateData)
+	if err != nil {
+		http.Error(w, "Failed to update product", http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(updatedProduct)
+}
+
+// DELETE PRODUCT
+func (u *UserHandler) DeleteProductHandler(w http.ResponseWriter, r *http.Request) {
+	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	defer cancel()
+
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		http.Error(w, "Missing product ID", http.StatusBadRequest)
+		return
+	}
+
+	product, err := u.userService.DeleteProduct(ctx, id)
+	if err != nil {
+		http.Error(w, "Failed to delete product", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
-
-	err = json.NewEncoder(w).Encode(products)
-	if err != nil {
-		http.Error(w, "Failed to encode products", http.StatusInternalServerError)
-	} else {
-		log.Println("Products of give categories are fetched successfully!!!")
-	}
+	json.NewEncoder(w).Encode(product)
 }

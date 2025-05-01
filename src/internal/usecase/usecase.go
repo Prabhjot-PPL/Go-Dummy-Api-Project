@@ -145,3 +145,23 @@ func (u *userService) GetProducts(ctx context.Context, categories []string) ([]d
 
 	return allProducts, nil
 }
+
+// UPDATE PRODUCT
+func (u *userService) UpdateProduct(ctx context.Context, id string, updateData map[string]interface{}) (dummyapi.Product, error) {
+	resp, err := u.keys.UpdateProduct(ctx, id, updateData)
+	if err != nil {
+		log.Println("Error deleting product by id: ", err)
+		return dummyapi.Product{}, err
+	}
+	return resp, nil
+}
+
+// DELETE PRODUCT
+func (u *userService) DeleteProduct(ctx context.Context, id string) (dummyapi.Product, error) {
+	resp, err := u.keys.DeleteProduct(ctx, id)
+	if err != nil {
+		log.Println("Error deleting product by id: ", err)
+		return dummyapi.Product{}, err
+	}
+	return resp, nil
+}
