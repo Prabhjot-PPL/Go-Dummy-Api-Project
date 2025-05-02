@@ -147,7 +147,7 @@ func (u *userService) GetProducts(ctx context.Context, categories []string) ([]d
 }
 
 // UPDATE PRODUCT
-func (u *userService) UpdateProduct(ctx context.Context, id string, updateData map[string]interface{}) (dummyapi.Product, error) {
+func (u *userService) UpdateProduct(ctx context.Context, id string, updateData dummyapi.Product) (dummyapi.Product, error) {
 	resp, err := u.keys.UpdateProduct(ctx, id, updateData)
 	if err != nil {
 		log.Println("Error deleting product by id: ", err)

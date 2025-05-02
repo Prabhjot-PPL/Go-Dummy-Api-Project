@@ -22,19 +22,34 @@ func InitRoutes(userHandler coreinterfaces.UserAPIHandler, userRepo ports.UserRe
 		protected.Use(authMiddleware.Middleware)
 
 		// GET ALL PRODUCTS
-		protected.Get("/allproducts", userHandler.AllProductsHandler)
+		protected.Get("/products", userHandler.AllProductsHandler)
 		// GET SINGLE PRODUCT
-		protected.Get("/singleproduct", userHandler.GetSingleProduct)
+		protected.Get("/products/{id}", userHandler.GetSingleProduct)
 		// GET ALL CATEGORIES
-		protected.Get("/get-categories", userHandler.CategoryHandler)
+		protected.Get("/categories", userHandler.CategoryHandler)
 		// GET PRODUCTS OF GIVEN CATEGORIES
-		protected.Post("/get-products", userHandler.ProductHandler)
+		protected.Post("/categories/{cat_id}/products", userHandler.ProductHandler)
 		// UPDATE PRODUCT
-		protected.Put("/updateproduct/{id}", userHandler.UpdateProductHandler)
+		protected.Put("/products/{id}", userHandler.UpdateProductHandler)
 		// DELETE PRODUCT
-		protected.Delete("/deleteproduct/{id}", userHandler.DeleteProductHandler)
+		protected.Delete("/products/{id}", userHandler.DeleteProductHandler)
 
 	})
 
 	return r
 }
+
+/*
+
+3rd party taking too long to respond (e.g. 10 mins)
+
+
+
+// apis
+
+user first api - response with "your request has been accepted"
+second call - "still processing unitl we fetched data from 3rd party"
+.
+.
+nth call - "responsd with success / failure (3rd party)"
+*/

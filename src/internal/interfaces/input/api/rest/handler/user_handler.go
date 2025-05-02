@@ -172,7 +172,7 @@ func (u *UserHandler) ProductHandler(w http.ResponseWriter, r *http.Request) {
 
 // UPDATE PRODUCT
 func (u *UserHandler) UpdateProductHandler(w http.ResponseWriter, r *http.Request) {
-	ctx, cancel := context.WithTimeout(r.Context(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(r.Context(), 10000000*time.Second)
 	defer cancel()
 
 	id := chi.URLParam(r, "id")
@@ -181,7 +181,7 @@ func (u *UserHandler) UpdateProductHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var updateData map[string]interface{}
+	var updateData dummyapi.Product
 	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
