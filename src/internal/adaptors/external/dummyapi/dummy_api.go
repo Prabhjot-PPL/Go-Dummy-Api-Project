@@ -9,7 +9,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 )
@@ -21,7 +20,7 @@ type ApiInterface interface {
 	GetProductById(ctx context.Context, id string) (Product, error)
 	GetProductCategories(ctx context.Context) ([]string, error)
 	GetProductsByCategory(ctx context.Context, category string) ([]Product, error)
-	UpdateProduct(ctx context.Context, id string, updateData Product) (Product, error)
+	UpdateProduct(ctx context.Context, id string, updateData map[string]interface{}) (Product, error)
 	DeleteProduct(ctx context.Context, id string) (Product, error)
 }
 
@@ -221,7 +220,7 @@ func (key ApiImplementation) GetProductsByCategory(ctx context.Context, category
 }
 
 // UPDATE PRODUCT
-func (key ApiImplementation) UpdateProduct(ctx context.Context, id string, updateData Product) (Product, error) {
+func (key ApiImplementation) UpdateProduct(ctx context.Context, id string, updateData map[string]interface{}) (Product, error) {
 	url := key.baseUrl + "/products/" + id
 
 	jsonBody, err := json.Marshal(updateData)
@@ -241,14 +240,10 @@ func (key ApiImplementation) UpdateProduct(ctx context.Context, id string, updat
 	}
 	defer resp.Body.Close()
 
-	fmt.Println(resp.Body)
-
 	var updatedProduct Product
 	if err := json.NewDecoder(resp.Body).Decode(&updatedProduct); err != nil {
 		return Product{}, err
 	}
-
-	fmt.Println(updatedProduct)
 
 	return updatedProduct, nil
 }

@@ -181,7 +181,7 @@ func (u *UserHandler) UpdateProductHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	var updateData dummyapi.Product
+	var updateData map[string]interface{}
 	if err := json.NewDecoder(r.Body).Decode(&updateData); err != nil {
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
@@ -193,8 +193,9 @@ func (u *UserHandler) UpdateProductHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(updatedProduct)
+	errString := "Failed to update product."
+	successSting := "Product updated successfully!!!"
+	pkg.WriteResponse(w, updatedProduct, errString, successSting)
 }
 
 // DELETE PRODUCT
@@ -214,7 +215,7 @@ func (u *UserHandler) DeleteProductHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(product)
+	errString := "Failed to delete product."
+	successSting := "Product deleted successfully!!!"
+	pkg.WriteResponse(w, product, errString, successSting)
 }

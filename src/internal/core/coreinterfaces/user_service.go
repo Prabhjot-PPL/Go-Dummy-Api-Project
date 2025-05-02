@@ -13,6 +13,6 @@ type Service interface {
 	GetProductById(ctx context.Context, id string) (dummyapi.Product, error)
 	GetCategories(ctx context.Context) ([]string, error)
 	GetProducts(ctx context.Context, req []string) ([]dummyapi.Product, error)
-	UpdateProduct(ctx context.Context, id string, updateData dummyapi.Product) (dummyapi.Product, error)
+	UpdateProduct(ctx context.Context, id string, updateData map[string]interface{}) (dummyapi.Product, error)
 	DeleteProduct(ctx context.Context, id string) (dummyapi.Product, error)
 }
